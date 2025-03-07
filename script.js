@@ -1,15 +1,24 @@
-// Храним данные о темах/вопросах
+// ========================= GLOBALS ========================= //
+
+// Храним данные о темах/вопросах (из questions.json)
 let topicsData = null;
 
-// Какой индекс темы сейчас активен
+// Индекс текущей (активной) темы
 let currentTopicIndex = 0;
 
-// Хранение ответов пользователя: answers[userTopicIndex] = массив выбранных индексов
-// Если userAnswers[i][j] = x, то это ответ на j-й вопрос темы i
+// Массив ответов пользователя: userAnswers[i][j] – выбранный вариант на j-й вопрос темы i
 let userAnswers = [];
 
-// Хранение "пройденных" тем (true/false)
+// Массив, помечающий, пройдена ли тема (true/false)
 let topicPassed = [];
+
+// Массив с деталями по каждой теме (для пояснений)
+let detailResults = [];
+
+// Флаг, указывающий, что сейчас загружается объяснение от AI
+let explanationLoading = false;
+
+// ========================= ON LOAD ========================= //
 
 document.addEventListener('DOMContentLoaded', () => {
   loadData();
@@ -26,19 +35,19 @@ function loadData() {
     .catch(err => console.error('Ошибка загрузки вопросов:', err));
 }
 
-/* Инициализация: создаём список тем (слева) и показываем первую тему */
+// ========================= ИНИЦИАЛИЗАЦИЯ ========================= //
+
 function initApp() {
   if (!topicsData || topicsData.length === 0) return;
 
-  // Заполняем массивы
-  userAnswers = topicsData.map(t => []);   // пустые ответы
-  topicPassed = topicsData.map(t => false); // все false
+  userAnswers = topicsData.map(() => []);    // Пустые ответы
+  topicPassed = topicsData.map(() => false); // Все темы изначально не пройдены
 
   renderSidebar();
   showTopic(0);
 }
 
-/* Генерируем левый список глав (тем) */
+/* Рендеринг левого меню с темами */
 function renderSidebar() {
   const sidebar = document.getElementById('sidebarTopics');
   sidebar.innerHTML = '<h2>Тақырыптар:</h2>';
@@ -48,9 +57,7 @@ function renderSidebar() {
     link.className = 'topic-link';
     link.textContent = `${index + 1}. ${topic.title}`;
     link.href = 'javascript:void(0)';
-
     link.onclick = () => {
-      // Если тема не заблокирована, показываем её
       if (!isTopicLocked(index)) {
         showTopic(index);
       }
@@ -61,20 +68,17 @@ function renderSidebar() {
   updateSidebarLock();
 }
 
-/* Проверяет, заблокирована ли тема:
-   тема i заблокирована, если i > 0 и предыдущая не пройдена */
+/* Тема заблокирована, если предыдущая не пройдена */
 function isTopicLocked(i) {
-  if (i === 0) return false; // первая тема всегда доступна
-  // Доступна, если предыдущая тема пройдена
+  if (i === 0) return false;
   return !topicPassed[i - 1];
 }
 
-/* Обновляет класс ссылок (locked / active) */
+/* Обновление классов ссылок в меню */
 function updateSidebarLock() {
   const links = document.querySelectorAll('.topic-link');
   links.forEach((link, index) => {
-    link.classList.remove('active');
-    link.classList.remove('locked');
+    link.classList.remove('active', 'locked');
     if (isTopicLocked(index)) {
       link.classList.add('locked');
     }
@@ -84,7 +88,7 @@ function updateSidebarLock() {
   });
 }
 
-/* Показываем тему (index) справа */
+/* Отображение выбранной темы справа */
 function showTopic(index) {
   currentTopicIndex = index;
   updateSidebarLock();
@@ -92,24 +96,23 @@ function showTopic(index) {
   const topic = topicsData[index];
   const container = document.getElementById('topicContent');
 
-  // Генерируем HTML вопросов
   let html = `
     <div class="topic-card">
       <h2>${topic.title}</h2>
   `;
 
   topic.questions.forEach((q, qIndex) => {
+    const userAnswerIdx = userAnswers[index][qIndex] || -1;
     html += `
       <div class="question-block">
         <p>${qIndex + 1}. ${q.question}</p>
         <div class="answers">
     `;
     q.answers.forEach((answerText, aIndex) => {
-      // проверим, не выбрал ли уже пользователь ответ
-      const isChecked = userAnswers[index][qIndex] === aIndex ? 'checked' : '';
+      const checked = (userAnswerIdx === aIndex) ? 'checked' : '';
       html += `
         <label>
-          <input type="radio" name="q_${qIndex}" value="${aIndex}" ${isChecked}/>
+          <input type="radio" name="q_${qIndex}" value="${aIndex}" ${checked} />
           ${answerText}
         </label>
       `;
@@ -117,53 +120,45 @@ function showTopic(index) {
     html += `</div></div>`;
   });
 
-  // Кнопка завершения теста
   html += `
-      <button class="finish-btn" onclick="finishTest()">Завершить тест</button>
+      <button class="finish-btn" onclick="finishTest()">
+        Тестті аяқтау
+      </button>
     </div>
     <div id="resultsArea"></div>
   `;
-
   container.innerHTML = html;
 }
 
-/* 
-  По нажатию «Завершить тест»: 
-    1) Сохраняем выбранные ответы 
-    2) Проверяем, заполнены ли все вопросы 
-    3) Разблокируем следующую главу (НЕ важно, сколько правильных ответов) 
-    4) Выводим разбор с подсветкой правильного/неправильного ответа 
-    5) Вызываем GPT для пояснений
-*/
+// ========================= ЗАВЕРШЕНИЕ ТЕСТА ========================= //
+
 async function finishTest() {
   const topic = topicsData[currentTopicIndex];
   const resultsArea = document.getElementById('resultsArea');
 
-  // 1) Собираем ответы
+  // 1) Сохранить ответы
   topic.questions.forEach((q, qIndex) => {
     const radios = document.getElementsByName(`q_${qIndex}`);
     let chosen = -1;
     radios.forEach(r => {
-      if (r.checked) chosen = parseInt(r.value, 10);
+      if (r.checked) {
+        chosen = parseInt(r.value, 10);
+      }
     });
     userAnswers[currentTopicIndex][qIndex] = chosen;
   });
 
-  // 2) Проверяем, все ли вопросы отвечены
+  // 2) Проверить, все ли вопросы отвечены
   for (let i = 0; i < topic.questions.length; i++) {
     if (userAnswers[currentTopicIndex][i] === undefined || userAnswers[currentTopicIndex][i] < 0) {
-      resultsArea.innerHTML = `
-        <p style="color:red;">
-          Тестті аяқтау үшін барлық сұраққа жауап беріңіз.
-        </p>`;
+      resultsArea.innerHTML = `<p style="color:red; font-weight:600;">Алдымен барлық сұрақтарға жауап беріңіз.</p>`;
       return;
     }
   }
 
-  // 3) Формируем результаты (что верно, что нет)
+  // 3) Формирование сводки результатов
   let correctCount = 0;
-  const detailResults = [];
-
+  detailResults = [];
   for (let i = 0; i < topic.questions.length; i++) {
     const userIndex = userAnswers[currentTopicIndex][i];
     const correctIndex = topic.questions[i].correctIndex;
@@ -177,98 +172,107 @@ async function finishTest() {
     });
   }
 
-  // Считаем тему пройденной, раз все вопросы заполнены (НЕ важно, сколько правильных)
+  // Тема считается пройденной (если все вопросы отвечены)
   topicPassed[currentTopicIndex] = true;
 
-  // 4) Генерируем сводку
+  // 4) Генерируем HTML-результатов с кнопками "Түсініктемені көру"
   let summaryHTML = `
-    <h3>Результат теста: ${correctCount} / ${topic.questions.length} верно</h3>
-    <p style="color:green;">
-      Тест аяқталды. Енді келесі тестке көшсеңіз болады.
-    </p>
+    <h3>Нәтиже: ${correctCount} / ${topic.questions.length} дұрыс</h3>
+    <p style="color:green; font-weight:600;">Тест аяқталды. Келесі тақырыпқа өтуге болады.</p>
     <div class="results-summary">
   `;
-
-  for (let i = 0; i < detailResults.length; i++) {
-    const dr = detailResults[i];
+  detailResults.forEach((dr, i) => {
     const userAnswerText = dr.answers[dr.userIndex];
     const correctAnswerText = dr.answers[dr.correctIndex];
     const isCorrect = (dr.userIndex === dr.correctIndex);
-
-    // CSS для блока: зелёный если верно, красный если нет
     const cssClass = isCorrect ? 'result-correct' : 'result-wrong';
-    summaryHTML += `<div class="result-item ${cssClass}">`;
-    summaryHTML += `<strong>Сұрақ:</strong> ${dr.question}<br/>`;
-    summaryHTML += `<strong>Сіздің жауап:</strong> ${userAnswerText}<br/>`;
-    summaryHTML += `<strong>Дұрыс жауап:</strong> ${correctAnswerText}<br/>`;
-
-    // Место для показа объяснения от GPT
     summaryHTML += `
-      <div id="explanation_${i}" class="explanation">
-        Анализ жасалуда AI...
+      <div class="result-item ${cssClass}">
+        <strong>Сұрақ:</strong> ${dr.question}<br/>
+        <strong>Жауабыңыз:</strong> ${userAnswerText}<br/>
+        <strong>Дұрыс жауап:</strong> ${correctAnswerText}<br/>
+        <button class="explain-btn" onclick="showExplanation(${i})">Түсініктемені көру</button>
+        <div id="explanation_${i}" class="explanation" style="display:none;"></div>
       </div>
     `;
-
-    summaryHTML += `</div>`;
-  }
+  });
   summaryHTML += `</div>`;
   resultsArea.innerHTML = summaryHTML;
 
-  // Асинхронно запрашиваем AI объяснение для каждого вопроса
-  for (let i = 0; i < detailResults.length; i++) {
-    const dr = detailResults[i];
-    const userAnswerText = dr.answers[dr.userIndex];
-    const correctAnswerText = dr.answers[dr.correctIndex];
-
-    // Элемент, куда вставим пояснение
-    const explanationEl = document.getElementById(`explanation_${i}`);
-    try {
-      const explanation = await getAiExplanation(
-        dr.question, 
-        userAnswerText, 
-        correctAnswerText
-      );
-      explanationEl.textContent = explanation;
-    } catch (err) {
-      explanationEl.textContent = 'Ошибка при получении пояснения от AI: ' + err.message;
-    }
-  }
-
-  // 5) Разблокируем следующую тему, если не последняя
+  // 5) Разблокировать следующую тему, если она есть
   if (currentTopicIndex < topicsData.length - 1) {
     updateSidebarLock();
   }
 }
 
-/* ===== ПРИМЕР ВЫЗОВА GPT ДЛЯ ПОЛУЧЕНИЯ ОБЪЯСНЕНИЯ =====
-   Лучше это делать на бэкенде, а не на фронте! 
-   Здесь – только учебный пример.
-*/
+// ========================= ПОКАЗ ОБЪЯСНЕНИЯ ========================= //
+
+async function showExplanation(i) {
+  // Если уже идет загрузка какого-либо объяснения, не разрешаем новый запрос
+  if (explanationLoading) {
+    alert("Пожалуйста, дождитесь загрузки текущего ответа.");
+    return;
+  }
+
+  const explanationEl = document.getElementById(`explanation_${i}`);
+  
+  // Если уже показан, скрываем
+  if (explanationEl.style.display === 'block') {
+    explanationEl.style.display = 'none';
+    return;
+  }
+  
+  // Если текст еще не загружен, делаем запрос
+  if (!explanationEl.textContent.trim()) {
+    explanationLoading = true;
+    explanationEl.style.display = 'block';
+    explanationEl.textContent = 'AI түсініктемесін жүктеу...';
+    try {
+      const dr = detailResults[i];
+      const explanation = await getAiExplanation(
+        dr.question,
+        dr.answers[dr.userIndex],
+        dr.answers[dr.correctIndex]
+      );
+      explanationEl.textContent = explanation;
+    } catch (error) {
+      explanationEl.textContent = 'AI түсініктемесін алу қате: ' + error.message;
+    }
+    explanationLoading = false;
+    return;
+  }
+  
+  // Если уже загружен, просто показываем
+  explanationEl.style.display = 'block';
+}
+
+// ========================= GPT ФУНКЦИЯ ========================= //
+
 async function getAiExplanation(questionText, userAnswerText, correctAnswerText) {
-  const apiKey = 'DUMMY_OPENAI_API_KEY'; // В реальном проекте НЕ хранить на фронте!
+  const apiKey = ''; // <-- Замените на ваш действующий ключ или используйте серверную прокси
   const apiUrl = 'https://api.openai.com/v1/chat/completions';
 
   const systemMsg = {
     role: 'system',
-    content: `Ты - помощник, который поясняет правильные ответы на вопросы по информатике.`
+    content: `Сен информатика сұрақтарының дұрыс жауабын түсіндіретін көмекшісің.`
   };
   const userMsg = {
     role: 'user',
     content: `
-Вопрос: ${questionText}
+Сұрақ: ${questionText}
 
-Ответ пользователя: ${userAnswerText}
-Правильный ответ: ${correctAnswerText}
+Пайдаланушының жауабы: ${userAnswerText}
+Дұрыс жауап: ${correctAnswerText}
 
-Объясни, почему правильный ответ именно ${correctAnswerText}, 
-и в чём ошибка, если пользователь выбрал ${userAnswerText} (или в чём логика, если верно).
-Используй простой, понятный язык.`
+Неліктен ${correctAnswerText} дұрыс? 
+Егер пайдаланушы қателескен болса, қатенің себебін түсіндір.
+Қарапайым, түсінікті тілде жауап бер.`
   };
 
   const body = {
-    model: 'gpt-3.5-turbo',
+    model: 'gpt-4',          // Используем модель GPT-4
     messages: [systemMsg, userMsg],
-    max_tokens: 150,
+    max_tokens: 700,         // Увеличенный лимит токенов для расширенного ответа
     temperature: 0.7
   };
 
@@ -283,9 +287,9 @@ async function getAiExplanation(questionText, userAnswerText, correctAnswerText)
 
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err.error?.message || 'Неизвестная ошибка GPT API');
+    throw new Error(err.error?.message || 'GPT API белгісіз қате');
   }
+
   const data = await response.json();
-  const assistantMsg = data.choices[0].message.content.trim();
-  return assistantMsg;
+  return data.choices[0].message.content.trim();
 }

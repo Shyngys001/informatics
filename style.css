@@ -1,4 +1,4 @@
-/* Сброс и базовые настройки */
+/* ====================== RESET & BASE ====================== */
 * {
   margin: 0;
   padding: 0;
@@ -7,165 +7,251 @@
 }
 
 body {
-  background-color: #f6f8fc;
+  background: #f3f6fa;
   color: #333;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* ====================== HEADER ====================== */
 header {
-  background-color: #304f8f; 
+  background: linear-gradient(45deg, #375a9e, #2c8fdc);
   color: #fff;
   text-align: center;
-  padding: 20px;
+  padding: 20px 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  position: relative;
+  z-index: 10;
+  animation: slideDown 0.8s ease-out;
 }
 
+.site-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* ====================== LAYOUT ====================== */
 .layout {
   flex: 1;
   display: flex;
   max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
+  margin: 0 auto;
+  overflow: hidden;
 }
 
-/* Левая колонка (список тем) */
+/* ====================== SIDEBAR ====================== */
 .sidebar {
-  width: 250px;
+  width: 260px;
   min-width: 200px;
-  background-color: #e9edf4;
+  background-color: #e8edf5;
   border-right: 1px solid #ccc;
-  padding: 15px;
+  padding: 20px;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
 }
 
 .sidebar h2 {
-  margin-bottom: 10px;
-  color: #304f8f;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: #2c5378;
 }
 
 .topic-link {
   display: block;
-  padding: 8px;
-  margin-bottom: 5px;
-  cursor: pointer;
-  border-radius: 4px;
+  padding: 12px 18px;
+  margin-bottom: 10px;
   background-color: #fff;
-  color: #304f8f;
-  text-decoration: none;
   border: 1px solid #cdd7e5;
+  border-radius: 6px;
+  color: #2c5378;
+  text-decoration: none;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
+
+.topic-link:hover {
+  background-color: #d1e3ff;
+  transform: translateX(5px);
+}
+
 .topic-link.locked {
   pointer-events: none;
   opacity: 0.5;
 }
+
 .topic-link.active {
-  background-color: #304f8f;
+  background-color: #2c5378;
   color: #fff;
 }
 
-/* Правая колонка (контент) */
+/* ====================== MAIN ====================== */
 main {
   flex: 1;
-  padding: 20px;
+  padding: 30px;
   background-color: #fff;
   min-height: 100vh;
+  overflow-y: auto;
 }
 
-/* Карточка вопросов */
+/* ====================== TOPIC CARD ====================== */
 .topic-card {
   background-color: #fefefe;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 20px 25px;
+  border-radius: 10px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  animation: fadeIn 0.5s ease;
 }
 
 .topic-card h2 {
-  margin-bottom: 15px;
-  color: #304f8f;
+  margin-bottom: 20px;
+  color: #2c5378;
+  font-size: 1.4rem;
 }
 
 .question-block {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  padding: 12px;
+  border-left: 4px solid transparent;
+  transition: background-color 0.3s ease, border-left-color 0.3s ease;
 }
+
+.question-block:hover {
+  background-color: #f9f9f9;
+  border-left-color: #2c5378;
+}
+
 .question-block p {
-  font-weight: 500;
-  color: #304f8f;
+  font-weight: 600;
+  color: #2c5378;
+  margin-bottom: 10px;
 }
+
 .answers label {
   display: block;
   margin-left: 20px;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   cursor: pointer;
+  transition: color 0.3s ease;
 }
 
-/* Кнопка завершения теста */
-.finish-btn {
-  padding: 10px 16px;
-  background-color: #304f8f;
+.answers label:hover {
+  color: #2c5378;
+}
+
+/* ====================== BUTTONS ====================== */
+.finish-btn,
+.explain-btn {
+  padding: 10px 18px;
+  background-color: #375a9e;
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-}
-.finish-btn:hover {
-  background-color: #20365f;
+  margin-top: 12px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-/* Сводка результатов */
+.finish-btn:hover,
+.explain-btn:hover {
+  background-color: #2c5378;
+  transform: scale(1.03);
+}
+
+/* ====================== RESULTS ====================== */
 .results-summary {
-  margin-top: 20px;
+  margin-top: 30px;
   border-top: 1px solid #ddd;
-  padding-top: 15px;
-}
-.result-item {
-  margin-bottom: 10px;
-  padding: 10px;
-  border-left: 4px solid #ccc;
-}
-.result-correct {
-  border-color: green;
-  background-color: #f0fff0;
-}
-.result-wrong {
-  border-color: red;
-  background-color: #fff0f0;
-}
-.explanation {
-  margin-top: 5px;
-  padding-left: 10px;
-  font-size: 0.95rem;
-  color: #333;
+  padding-top: 20px;
+  animation: fadeInUp 0.5s ease;
 }
 
-/* Футер */
+.result-item {
+  margin-bottom: 15px;
+  padding: 12px;
+  border-left: 4px solid #ccc;
+  border-radius: 6px;
+  background-color: #fafafa;
+  transition: background-color 0.3s ease, border-left-color 0.3s ease;
+}
+
+.result-correct {
+  border-left-color: #2ca25f;
+  background-color: #e6fff0;
+  animation: correctFlash 0.5s ease;
+}
+
+.result-wrong {
+  border-left-color: #d9534f;
+  background-color: #fff2f2;
+  animation: wrongFlash 0.5s ease;
+}
+
+.explanation {
+  margin-top: 10px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  background-color: #f0f5ff;
+  border-radius: 6px;
+  transition: all 0.4s ease;
+  overflow-y: auto;        /* Вертикальная прокрутка, если контент превышает высоту */
+  white-space: pre-wrap;   /* Перенос строк */
+}
+
+/* ====================== FOOTER ====================== */
 footer {
-  background-color: #304f8f;
+  background: #2c5378;
   color: #fff;
   text-align: center;
-  padding: 10px;
+  padding: 15px 10px;
 }
 
-/* ================ Адаптивная верстка (мобильная) ================ */
-/* При ширине экрана до 768px переходим к вертикальной компоновке */
+/* ====================== ANIMATIONS ====================== */
+/* Плавное появление */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Пульсация для правильных ответов */
+@keyframes correctFlash {
+  0%   { background-color: #dfffe9; }
+  50%  { background-color: #e6fff0; }
+  100% { background-color: #e6fff0; }
+}
+
+/* Пульсация для неправильных ответов */
+@keyframes wrongFlash {
+  0%   { background-color: #ffe0e0; }
+  50%  { background-color: #fff2f2; }
+  100% { background-color: #fff2f2; }
+}
+
+/* Анимация заголовка */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ====================== RESPONSIVE ====================== */
 @media (max-width: 768px) {
   .layout {
     flex-direction: column;
   }
   .sidebar {
     width: 100%;
-    min-width: auto;
-    margin-bottom: 10px;
     border-right: none;
     border-bottom: 1px solid #ccc;
+    margin-bottom: 10px;
   }
   main {
     min-height: auto;
-  }
-  .question-block p {
-    margin-left: 5px;
-  }
-  .answers label {
-    margin-left: 10px; /* чуть уменьшим отступы */
   }
 }
