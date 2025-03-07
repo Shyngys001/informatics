@@ -1,235 +1,291 @@
-/* ===== ПЕРЕМЕННАЯ ДЛЯ ХРАНЕНИЯ ГРУЗИМОГО JSON ===== */
-let questionsData = null;
+// Храним данные о темах/вопросах
+let topicsData = null;
 
-/* ===== ПРИ ЗАГРУЗКЕ СТРАНИЦЫ ===== */
+// Какой индекс темы сейчас активен
+let currentTopicIndex = 0;
+
+// Хранение ответов пользователя: answers[userTopicIndex] = массив выбранных индексов
+// Если userAnswers[i][j] = x, то это ответ на j-й вопрос темы i
+let userAnswers = [];
+
+// Хранение "пройденных" тем (true/false)
+let topicPassed = [];
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Сразу показываем теорию
-  showSection('theory');
-  // Грузим файл с вопросами
-  loadQuestionsJSON();
+  loadData();
 });
 
-/* ===== ФУНКЦИЯ ЗАГРУЗКИ JSON (вопросов) ===== */
-function loadQuestionsJSON() {
+/* Загрузка JSON с вопросами */
+function loadData() {
   fetch('data/questions.json')
-    .then(response => response.json())
+    .then(resp => resp.json())
     .then(data => {
-      questionsData = data;
-      renderTests();
+      topicsData = data.topics;
+      initApp();
     })
-    .catch(error => {
-      console.error('Ошибка загрузки вопросов:', error);
-    });
+    .catch(err => console.error('Ошибка загрузки вопросов:', err));
 }
 
-/* ===== ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ ===== */
-function showSection(sectionId) {
-  const sections = document.querySelectorAll('.section');
-  sections.forEach(sec => sec.classList.remove('active'));
-  document.getElementById(sectionId).classList.add('active');
+/* Инициализация: создаём список тем (слева) и показываем первую тему */
+function initApp() {
+  if (!topicsData || topicsData.length === 0) return;
+
+  // Заполняем массивы
+  userAnswers = topicsData.map(t => []);   // пустые ответы
+  topicPassed = topicsData.map(t => false); // все false
+
+  renderSidebar();
+  showTopic(0);
 }
 
-/* ===== ПОСТРОЕНИЕ ТЕСТОВ НА СТРАНИЦЕ ===== */
-function renderTests() {
-  if (!questionsData) return;
-  const testContainer = document.getElementById('testContainer');
-  testContainer.innerHTML = ''; // очистим
+/* Генерируем левый список глав (тем) */
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebarTopics');
+  sidebar.innerHTML = '<h2>Тақырыптар:</h2>';
 
-  questionsData.topics.forEach(topic => {
-    const topicName = topic.name;
+  topicsData.forEach((topic, index) => {
+    const link = document.createElement('a');
+    link.className = 'topic-link';
+    link.textContent = `${index + 1}. ${topic.title}`;
+    link.href = 'javascript:void(0)';
 
-    const topicTitle = document.createElement('h3');
-    topicTitle.textContent = `Тема: ${topicName}`;
-    testContainer.appendChild(topicTitle);
-
-    topic.variants.forEach(variant => {
-      const variantNumber = variant.variantNumber;
-      
-      // Создаём блок для теста
-      const testBlock = document.createElement('div');
-      testBlock.className = 'test-block';
-      testBlock.setAttribute('data-topic', topicName);
-      testBlock.setAttribute('data-variant', variantNumber);
-
-      const variantTitle = document.createElement('h4');
-      variantTitle.textContent = `Вариант ${variantNumber}`;
-      testBlock.appendChild(variantTitle);
-
-      // Выводим вопросы
-      variant.questions.forEach((q, qIndex) => {
-        const questionDiv = document.createElement('div');
-        questionDiv.className = 'question';
-        questionDiv.textContent = q.question;
-        testBlock.appendChild(questionDiv);
-
-        const answersDiv = document.createElement('div');
-        answersDiv.className = 'answers';
-        
-        q.answers.forEach((answer, aIndex) => {
-          const label = document.createElement('label');
-          const radio = document.createElement('input');
-          radio.type = 'radio';
-          radio.name = `q_${topicName}_${variantNumber}_${qIndex}`;
-          radio.value = aIndex;
-          label.appendChild(radio);
-          label.appendChild(document.createTextNode(answer));
-          answersDiv.appendChild(label);
-        });
-        testBlock.appendChild(answersDiv);
-      });
-
-      // Кнопка "Отправить"
-      const submitBtn = document.createElement('button');
-      submitBtn.textContent = 'Отправить';
-      submitBtn.onclick = () => submitTest(testBlock);
-      testBlock.appendChild(submitBtn);
-
-      testContainer.appendChild(testBlock);
-    });
-  });
-}
-
-/* ===== ОТПРАВКА ТЕСТА (ПРОВЕРКА) ===== */
-function submitTest(testBlock) {
-  const topic = testBlock.getAttribute('data-topic');
-  const variant = testBlock.getAttribute('data-variant');
-
-  // Собираем вопросы
-  const questions = testBlock.querySelectorAll('.question');
-  let correctCount = 0;
-  let totalCount = 0;
-
-  questions.forEach((questionDiv, qIndex) => {
-    const radios = questionDiv.nextElementSibling.querySelectorAll('input[type="radio"]');
-    let selectedValue = null;
-    radios.forEach(radio => {
-      if (radio.checked) {
-        selectedValue = parseInt(radio.value, 10);
+    link.onclick = () => {
+      // Если тема не заблокирована, показываем её
+      if (!isTopicLocked(index)) {
+        showTopic(index);
       }
-    });
-    totalCount++;
+    };
+    sidebar.appendChild(link);
+  });
 
-    // Находим правильный индекс из questionsData
-    const questionData = getQuestionData(topic, variant, qIndex);
-    if (!questionData) return;
-    const correctIndex = questionData.correctIndex;
+  updateSidebarLock();
+}
 
-    if (selectedValue === correctIndex) {
-      correctCount++;
+/* Проверяет, заблокирована ли тема:
+   тема i заблокирована, если i > 0 и предыдущая не пройдена */
+function isTopicLocked(i) {
+  if (i === 0) return false; // первая тема всегда доступна
+  // Доступна, если предыдущая тема пройдена
+  return !topicPassed[i - 1];
+}
+
+/* Обновляет класс ссылок (locked / active) */
+function updateSidebarLock() {
+  const links = document.querySelectorAll('.topic-link');
+  links.forEach((link, index) => {
+    link.classList.remove('active');
+    link.classList.remove('locked');
+    if (isTopicLocked(index)) {
+      link.classList.add('locked');
+    }
+    if (index === currentTopicIndex) {
+      link.classList.add('active');
     }
   });
-
-  storeResult(topic, variant, correctCount, totalCount);
-
-  alert(`Правильных ответов: ${correctCount} из ${totalCount}`);
 }
 
-/* ===== ПОИСК ДАННЫХ О КОНКРЕТНОМ ВОПРОСЕ В JSON ===== */
-function getQuestionData(topicName, variantNumber, questionIndex) {
-  if (!questionsData) return null;
-  const topicObj = questionsData.topics.find(t => t.name === topicName);
-  if (!topicObj) return null;
-  const variantObj = topicObj.variants.find(v => v.variantNumber == variantNumber);
-  if (!variantObj) return null;
-  return variantObj.questions[questionIndex] || null;
-}
+/* Показываем тему (index) справа */
+function showTopic(index) {
+  currentTopicIndex = index;
+  updateSidebarLock();
 
-/* ===== ХРАНЕНИЕ РЕЗУЛЬТАТОВ (LOCALSTORAGE) ===== */
-function storeResult(topic, variant, correctCount, totalCount) {
-  // структура: { "topic|variant": { correct: ..., total: ... }, ... }
-  let results = JSON.parse(localStorage.getItem('testResults') || '{}');
-  const key = topic + '|' + variant;
+  const topic = topicsData[index];
+  const container = document.getElementById('topicContent');
 
-  results[key] = {
-    correctCount: correctCount,
-    total: totalCount
-  };
+  // Генерируем HTML вопросов
+  let html = `
+    <div class="topic-card">
+      <h2>${topic.title}</h2>
+  `;
 
-  localStorage.setItem('testResults', JSON.stringify(results));
-}
+  topic.questions.forEach((q, qIndex) => {
+    html += `
+      <div class="question-block">
+        <p>${qIndex + 1}. ${q.question}</p>
+        <div class="answers">
+    `;
+    q.answers.forEach((answerText, aIndex) => {
+      // проверим, не выбрал ли уже пользователь ответ
+      const isChecked = userAnswers[index][qIndex] === aIndex ? 'checked' : '';
+      html += `
+        <label>
+          <input type="radio" name="q_${qIndex}" value="${aIndex}" ${isChecked}/>
+          ${answerText}
+        </label>
+      `;
+    });
+    html += `</div></div>`;
+  });
 
-/* ===== ОТОБРАЖЕНИЕ РЕЗУЛЬТАТОВ ===== */
-function showResults() {
-  let results = JSON.parse(localStorage.getItem('testResults') || '{}');
-  let output = '<ul>';
-  for (let key in results) {
-    const { correctCount, total } = results[key];
-    output += `<li><strong>${key}</strong>: ${correctCount} из ${total} верно</li>`;
-  }
-  output += '</ul>';
-  if (Object.keys(results).length === 0) {
-    output = '<p>Пока нет сданных тестов.</p>';
-  }
-  document.getElementById('resultsArea').innerHTML = output;
-}
+  // Кнопка завершения теста
+  html += `
+      <button class="finish-btn" onclick="finishTest()">Завершить тест</button>
+    </div>
+    <div id="resultsArea"></div>
+  `;
 
-/* ===== AI-БОТ (GPT) ===== */
-async function sendMessage() {
-  const userInput = document.getElementById('userInput');
-  const userText = userInput.value.trim();
-  if (!userText) return;
-
-  addChatMessage('Пользователь', userText, 'user');
-  userInput.value = '';
-
-  try {
-    const botReply = await getBotResponse(userText);
-    addChatMessage('AI-бот', botReply, 'bot');
-  } catch (error) {
-    addChatMessage('AI-бот', 'Ошибка при вызове API: ' + error.message, 'bot');
-  }
+  container.innerHTML = html;
 }
 
 /* 
-   В реальном продакшене вы НЕ храните API-ключ на фронте! 
-   Здесь - только демонстрационный пример. 
+  По нажатию «Завершить тест»: 
+    1) Сохраняем выбранные ответы 
+    2) Проверяем, заполнены ли все вопросы 
+    3) Разблокируем следующую главу (НЕ важно, сколько правильных ответов) 
+    4) Выводим разбор с подсветкой правильного/неправильного ответа 
+    5) Вызываем GPT для пояснений
 */
-async function getBotResponse(userText) {
-  const openaiApiKey = ''; // <-- Вставьте СВОЙ ключ
-  const endpoint = 'https://api.openai.com/v1/chat/completions';
+async function finishTest() {
+  const topic = topicsData[currentTopicIndex];
+  const resultsArea = document.getElementById('resultsArea');
 
-  const requestBody = {
+  // 1) Собираем ответы
+  topic.questions.forEach((q, qIndex) => {
+    const radios = document.getElementsByName(`q_${qIndex}`);
+    let chosen = -1;
+    radios.forEach(r => {
+      if (r.checked) chosen = parseInt(r.value, 10);
+    });
+    userAnswers[currentTopicIndex][qIndex] = chosen;
+  });
+
+  // 2) Проверяем, все ли вопросы отвечены
+  for (let i = 0; i < topic.questions.length; i++) {
+    if (userAnswers[currentTopicIndex][i] === undefined || userAnswers[currentTopicIndex][i] < 0) {
+      resultsArea.innerHTML = `
+        <p style="color:red;">
+          Сначала ответьте на все вопросы, прежде чем завершить тест.
+        </p>`;
+      return;
+    }
+  }
+
+  // 3) Формируем результаты (что верно, что нет)
+  let correctCount = 0;
+  const detailResults = [];
+
+  for (let i = 0; i < topic.questions.length; i++) {
+    const userIndex = userAnswers[currentTopicIndex][i];
+    const correctIndex = topic.questions[i].correctIndex;
+    const isCorrect = (userIndex === correctIndex);
+    if (isCorrect) correctCount++;
+    detailResults.push({
+      question: topic.questions[i].question,
+      userIndex,
+      correctIndex,
+      answers: topic.questions[i].answers
+    });
+  }
+
+  // Считаем тему пройденной, раз все вопросы заполнены (НЕ важно, сколько правильных)
+  topicPassed[currentTopicIndex] = true;
+
+  // 4) Генерируем сводку
+  let summaryHTML = `
+    <h3>Результат теста: ${correctCount} / ${topic.questions.length} верно</h3>
+    <p style="color:green;">
+      Тест завершён. Теперь вы можете перейти к следующей главе.
+    </p>
+    <div class="results-summary">
+  `;
+
+  for (let i = 0; i < detailResults.length; i++) {
+    const dr = detailResults[i];
+    const userAnswerText = dr.answers[dr.userIndex];
+    const correctAnswerText = dr.answers[dr.correctIndex];
+    const isCorrect = (dr.userIndex === dr.correctIndex);
+
+    // CSS для блока: зелёный если верно, красный если нет
+    const cssClass = isCorrect ? 'result-correct' : 'result-wrong';
+    summaryHTML += `<div class="result-item ${cssClass}">`;
+    summaryHTML += `<strong>Вопрос:</strong> ${dr.question}<br/>`;
+    summaryHTML += `<strong>Ваш ответ:</strong> ${userAnswerText}<br/>`;
+    summaryHTML += `<strong>Правильный ответ:</strong> ${correctAnswerText}<br/>`;
+
+    // Место для показа объяснения от GPT
+    summaryHTML += `
+      <div id="explanation_${i}" class="explanation">
+        Идёт загрузка объяснения от AI...
+      </div>
+    `;
+
+    summaryHTML += `</div>`;
+  }
+  summaryHTML += `</div>`;
+  resultsArea.innerHTML = summaryHTML;
+
+  // Асинхронно запрашиваем AI объяснение для каждого вопроса
+  for (let i = 0; i < detailResults.length; i++) {
+    const dr = detailResults[i];
+    const userAnswerText = dr.answers[dr.userIndex];
+    const correctAnswerText = dr.answers[dr.correctIndex];
+
+    // Элемент, куда вставим пояснение
+    const explanationEl = document.getElementById(`explanation_${i}`);
+    try {
+      const explanation = await getAiExplanation(
+        dr.question, 
+        userAnswerText, 
+        correctAnswerText
+      );
+      explanationEl.textContent = explanation;
+    } catch (err) {
+      explanationEl.textContent = 'Ошибка при получении пояснения от AI: ' + err.message;
+    }
+  }
+
+  // 5) Разблокируем следующую тему, если не последняя
+  if (currentTopicIndex < topicsData.length - 1) {
+    updateSidebarLock();
+  }
+}
+
+/* ===== ПРИМЕР ВЫЗОВА GPT ДЛЯ ПОЛУЧЕНИЯ ОБЪЯСНЕНИЯ =====
+   Лучше это делать на бэкенде, а не на фронте! 
+   Здесь – только учебный пример.
+*/
+async function getAiExplanation(questionText, userAnswerText, correctAnswerText) {
+  const apiKey = 'DUMMY_OPENAI_API_KEY'; // В реальном проекте НЕ хранить на фронте!
+  const apiUrl = 'https://api.openai.com/v1/chat/completions';
+
+  const systemMsg = {
+    role: 'system',
+    content: `Ты - помощник, который поясняет правильные ответы на вопросы по информатике.`
+  };
+  const userMsg = {
+    role: 'user',
+    content: `
+Вопрос: ${questionText}
+
+Ответ пользователя: ${userAnswerText}
+Правильный ответ: ${correctAnswerText}
+
+Объясни, почему правильный ответ именно ${correctAnswerText}, 
+и в чём ошибка, если пользователь выбрал ${userAnswerText} (или в чём логика, если верно).
+Используй простой, понятный язык.`
+  };
+
+  const body = {
     model: 'gpt-3.5-turbo',
-    messages: [
-      { role: 'system', content: 'You are a helpful assistant that explains Informatics topics.' },
-      { role: 'user', content: userText }
-    ],
-    max_tokens: 256,
+    messages: [systemMsg, userMsg],
+    max_tokens: 150,
     temperature: 0.7
   };
 
-  const response = await fetch(endpoint, {
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${openaiApiKey}`
+      'Authorization': 'Bearer ' + apiKey
     },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error?.message || 'Неизвестная ошибка API');
+    const err = await response.json();
+    throw new Error(err.error?.message || 'Неизвестная ошибка GPT API');
   }
-
   const data = await response.json();
-  // Берём финальный ответ (assistant)
-  return data.choices[0].message.content.trim();
-}
-
-/* ===== ОТОБРАЖАЕМ СООБЩЕНИЯ В ЧАТЕ ===== */
-function addChatMessage(author, text, cssClass) {
-  const chatMessages = document.getElementById('chatMessages');
-  const messageDiv = document.createElement('div');
-  messageDiv.classList.add('message', cssClass);
-  messageDiv.innerHTML = `<strong>${author}:</strong> ${text}`;
-  chatMessages.appendChild(messageDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-/* ===== ОТПРАВКА ПО ENTER ===== */
-function handleKeyPress(event) {
-  if (event.key === 'Enter') {
-    sendMessage();
-  }
+  const assistantMsg = data.choices[0].message.content.trim();
+  return assistantMsg;
 }

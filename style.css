@@ -1,170 +1,147 @@
-/* ===== Общие стили, сине-белая цветовая гамма ===== */
+/* Сброс и базовые настройки */
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-  }
-  
-  body {
-    background-color: #ffffff;
-    color: #333333;
-  }
-  
-  /* Шапка */
-  header {
-    background-color: #1e4b8f; /* Темно-синий */
-    color: #ffffff;
-    padding: 20px;
-    text-align: center;
-  }
-  
-  /* Навигация */
-  nav {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    background-color: #e5f0ff; /* Очень светлый голубой */
-    padding: 10px;
-  }
-  
-  nav button {
-    background-color: #ffffff;
-    border: 1px solid #99c0ff;
-    color: #1e4b8f;
-    cursor: pointer;
-    padding: 10px 20px;
-    margin: 5px;
-    border-radius: 4px;
-  }
-  nav button:hover {
-    background-color: #99c0ff;
-    color: #fff;
-  }
-  
-  /* Основной контейнер */
-  main {
-    max-width: 1000px;
-    margin: 20px auto;
-    padding: 0 10px;
-  }
-  
-  .section {
-    display: none;
-    margin-bottom: 20px;
-  }
-  .section.active {
-    display: block;
-  }
-  
-  h1, h2, h3, h4 {
-    margin-bottom: 10px;
-    color: #1e4b8f;
-  }
-  
-  /* Тесты */
-  #testContainer {
-    margin-top: 20px;
-  }
-  .test-block {
-    border: 1px solid #99c0ff;
-    border-radius: 4px;
-    padding: 10px;
-    margin-bottom: 20px;
-    background-color: #f5faff; /* Очень светлый оттенок */
-  }
-  .test-block h4 {
-    margin-bottom: 10px;
-  }
-  .answers label {
-    display: block;
-    margin-bottom: 5px;
-  }
-  .test-block button {
-    background-color: #1e4b8f;
-    color: #ffffff;
-    border: none;
-    padding: 8px 16px;
-    cursor: pointer;
-    margin-top: 5px;
-    border-radius: 4px;
-  }
-  .test-block button:hover {
-    background-color: #163969;
-  }
-  
-  /* Результаты */
-  #resultsArea ul {
-    list-style: inside disc;
-    margin-left: 20px;
-  }
-  
-  /* Чат-бот */
-  .chat-container {
-    border: 1px solid #99c0ff;
-    padding: 10px;
-    border-radius: 4px;
-    background-color: #f5faff;
-  }
-  .chat-messages {
-    height: 250px;
-    overflow-y: auto;
-    border: 1px solid #99c0ff;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    background-color: #ffffff;
-  }
-  .message {
-    margin: 5px 0;
-    line-height: 1.4;
-  }
-  .message.user {
-    color: #1e4b8f;
-    font-weight: bold;
-  }
-  .message.bot {
-    color: #164287;
-  }
-  #userInput {
-    width: calc(100% - 120px);
-    padding: 8px;
-    margin-right: 5px;
-    border: 1px solid #99c0ff;
-    border-radius: 4px;
-  }
-  .chat-container button {
-    background-color: #1e4b8f;
-    color: #ffffff;
-    border: none;
-    padding: 8px 16px;
-    cursor: pointer;
-    border-radius: 4px;
-  }
-  .chat-container button:hover {
-    background-color: #163969;
-  }
-  
-  /* Футер */
-  footer {
-    background-color: #1e4b8f;
-    color: #ffffff;
-    text-align: center;
-    padding: 10px;
-    margin-top: 20px;
-  }
-  
-  /* ===== Адаптивность для мобильных устройств ===== */
-  @media (max-width: 600px) {
-    nav button {
-      margin: 5px 0;
-      width: 100%;
-    }
-    .chat-messages {
-      height: 200px; /* чуть поменьше */
-    }
-    #userInput {
-      width: 100%;
-      margin-bottom: 10px;
-    }
-  }
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  background-color: #f6f8fc;
+  color: #333;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+header {
+  background-color: #304f8f; 
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+}
+
+.layout {
+  flex: 1;
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Левая колонка (список тем) */
+.sidebar {
+  width: 250px;
+  min-width: 200px;
+  background-color: #e9edf4;
+  border-right: 1px solid #ccc;
+  padding: 15px;
+}
+
+.sidebar h2 {
+  margin-bottom: 10px;
+  color: #304f8f;
+  font-size: 1.2rem;
+}
+
+.topic-link {
+  display: block;
+  padding: 8px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #304f8f;
+  text-decoration: none;
+  border: 1px solid #cdd7e5;
+}
+.topic-link.locked {
+  pointer-events: none;
+  opacity: 0.5;
+}
+.topic-link.active {
+  background-color: #304f8f;
+  color: #fff;
+}
+
+/* Правая колонка (контент) */
+main {
+  flex: 1;
+  padding: 20px;
+  background-color: #fff;
+  min-height: 100vh;
+}
+
+/* Карточка вопросов */
+.topic-card {
+  background-color: #fefefe;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.topic-card h2 {
+  margin-bottom: 15px;
+  color: #304f8f;
+}
+
+.question-block {
+  margin-bottom: 15px;
+}
+.question-block p {
+  font-weight: 500;
+  color: #304f8f;
+}
+.answers label {
+  display: block;
+  margin-left: 20px;
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+
+/* Кнопка завершения теста */
+.finish-btn {
+  padding: 10px 16px;
+  background-color: #304f8f;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.finish-btn:hover {
+  background-color: #20365f;
+}
+
+/* Сводка результатов */
+.results-summary {
+  margin-top: 20px;
+  border-top: 1px solid #ddd;
+  padding-top: 15px;
+}
+.result-item {
+  margin-bottom: 10px;
+  padding: 10px;
+  border-left: 4px solid #ccc;
+}
+.result-correct {
+  border-color: green;
+  background-color: #f0fff0;
+}
+.result-wrong {
+  border-color: red;
+  background-color: #fff0f0;
+}
+.explanation {
+  margin-top: 5px;
+  padding-left: 10px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+/* Футер */
+footer {
+  background-color: #304f8f;
+  color: #fff;
+  text-align: center;
+  padding: 10px;
+}
