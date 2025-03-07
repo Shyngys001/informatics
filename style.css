@@ -145,3 +145,27 @@ footer {
   text-align: center;
   padding: 10px;
 }
+
+/* ================ Адаптивная верстка (мобильная) ================ */
+/* При ширине экрана до 768px переходим к вертикальной компоновке */
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: auto;
+    margin-bottom: 10px;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+  }
+  main {
+    min-height: auto;
+  }
+  .question-block p {
+    margin-left: 5px;
+  }
+  .answers label {
+    margin-left: 10px; /* чуть уменьшим отступы */
+  }
+}
