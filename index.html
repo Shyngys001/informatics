@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Онлайн-платформа для подготовки к ҰБТ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Онлайн-платформа для подготовки к ҰБТ (Информатика)</h1>
+  </header>
+
+  <nav>
+    <button onclick="showSection('theory')">Теоретический раздел</button>
+    <button onclick="showSection('tests')">Тесты</button>
+    <button onclick="showSection('aiBot')">AI-бот (GPT)</button>
+  </nav>
+
+  <main>
+    <!-- Теоретический Раздел -->
+    <section id="theory" class="section">
+      <h2>Теоретический раздел</h2>
+      <p>Здесь краткие конспекты по темам. Для полноты их нужно расширить и наполнить материалами.</p>
+      
+      <h3>1. Компьютерлік жүйелер</h3>
+      <ul>
+        <li><strong>Компьютердің құрылғылары:</strong> Процессор, ОЗУ, HDD/SSD и т.д.</li>
+        <li><strong>Компьютерлік желілер:</strong> Локальные и глобальные сети, топологии, протоколы.</li>
+      </ul>
+      <h3>2. Ақпараттық процестер</h3>
+      <ul>
+        <li><strong>Ақпаратты ұсыну, кодтау:</strong> Биты, байты, ASCII, Unicode</li>
+        <li><strong>Есептеу жүйелері:</strong> Двоичная, восьмеричная, шестнадцатеричная системы счисления.</li>
+        <li><strong>Логические основы:</strong> Логические операции, булева алгебра.</li>
+      </ul>
+      <h3>3. Компьютерлік ойлау</h3>
+      <ul>
+        <li><strong>Python программалау:</strong> Синтаксис, типы данных, функции, ООП.</li>
+        <li><strong>Алгоритмдер:</strong> Функции, рекурсия, сортировки, графы.</li>
+      </ul>
+      <h3>4. Аппараттық және программалық қамтамасыз ету</h3>
+      <p>Операционные системы, драйверы, взаимодействие «железо + софт».</p>
+      <h3>5. Ақпараттық процестер мен жүйелер</h3>
+      <ul>
+        <li><strong>Реляциондық деректер қоры:</strong> Таблицы, ключи, отношения.</li>
+        <li><strong>Мәліметтер қорын жасау:</strong> Создание БД, SQL-запросы.</li>
+      </ul>
+      <h3>6. Web-жобалау</h3>
+      <p>Основы HTML, CSS, JavaScript, адаптивная верстка, клиент-сервер.</p>
+    </section>
+
+    <!-- Тесты -->
+    <section id="tests" class="section">
+      <h2>Тесты</h2>
+      <p>Тесты формируются из файла <code>questions.json</code>. Ниже появятся варианты вопросов после загрузки.</p>
+      <div id="testContainer"></div>
+      
+      <hr>
+      <h3>Результаты тестов (сохраняются в localStorage)</h3>
+      <button onclick="showResults()">Показать результаты</button>
+      <div id="resultsArea"></div>
+    </section>
+
+    <!-- AI-бот (GPT) -->
+    <section id="aiBot" class="section">
+      <h2>AI-бот (GPT)</h2>
+      <p>Пример простого чата с GPT API. Введите свой вопрос, нажмите «Отправить».</p>
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages"></div>
+        <input type="text" id="userInput" placeholder="Введите вопрос..." onkeypress="handleKeyPress(event)"/>
+        <button onclick="sendMessage()">Отправить</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2023 Учебная платформа по информатике</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
