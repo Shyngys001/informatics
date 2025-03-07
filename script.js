@@ -154,7 +154,7 @@ async function finishTest() {
     if (userAnswers[currentTopicIndex][i] === undefined || userAnswers[currentTopicIndex][i] < 0) {
       resultsArea.innerHTML = `
         <p style="color:red;">
-          Сначала ответьте на все вопросы, прежде чем завершить тест.
+          Тестті аяқтау үшін барлық сұраққа жауап беріңіз.
         </p>`;
       return;
     }
@@ -184,7 +184,7 @@ async function finishTest() {
   let summaryHTML = `
     <h3>Результат теста: ${correctCount} / ${topic.questions.length} верно</h3>
     <p style="color:green;">
-      Тест завершён. Теперь вы можете перейти к следующей главе.
+      Тест аяқталды. Енді келесі тестке көшсеңіз болады.
     </p>
     <div class="results-summary">
   `;
@@ -198,14 +198,14 @@ async function finishTest() {
     // CSS для блока: зелёный если верно, красный если нет
     const cssClass = isCorrect ? 'result-correct' : 'result-wrong';
     summaryHTML += `<div class="result-item ${cssClass}">`;
-    summaryHTML += `<strong>Вопрос:</strong> ${dr.question}<br/>`;
-    summaryHTML += `<strong>Ваш ответ:</strong> ${userAnswerText}<br/>`;
-    summaryHTML += `<strong>Правильный ответ:</strong> ${correctAnswerText}<br/>`;
+    summaryHTML += `<strong>Сұрақ:</strong> ${dr.question}<br/>`;
+    summaryHTML += `<strong>Сіздің жауап:</strong> ${userAnswerText}<br/>`;
+    summaryHTML += `<strong>Дұрыс жауап:</strong> ${correctAnswerText}<br/>`;
 
     // Место для показа объяснения от GPT
     summaryHTML += `
       <div id="explanation_${i}" class="explanation">
-        Идёт загрузка объяснения от AI...
+        Анализ жасалуда AI...
       </div>
     `;
 
